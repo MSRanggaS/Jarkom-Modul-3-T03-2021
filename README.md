@@ -2,24 +2,136 @@
 
 ## Soal dan Penyelesaian
 
+Berikut adalah topologi jaringan yang telah dibuat oleh kelompok kami:
+
+![image](https://user-images.githubusercontent.com/73152464/141611233-4e3ae679-df4f-4c9f-972d-476cdec2dc08.png)
+
+
 ### 1. Luffy bersama Zoro berencana membuat peta tersebut dengan kriteria EniesLobby sebagai DNS Server, Jipangu sebagai DHCP Server, Water7 sebagai Proxy Server
 
+**Jawab:**
+- Yang pertama, kita perlu mengaktifkan iptables pada Foosha agar semua jaringan yang terhubung pada Foosha dapat tersambung ke internet. Commandnya adalah `iptables -t nat -A POSTROUTING -o eth0 -j MASQUERADE -s 10.43.0.0/16`
+- Selanjutnya memasukkan konfigurasi `nameserver 192.168.122.1` yang terdapat pada folder `/etc/resolv.conf` di node Jipangu, EnniesLobby, dan Water7.
+
+a. Jipangu sebagai DHCP Server
+Untuk menjadikan Jipangu sebagai DHCP Server, maka dijalankan command `apt-get update` dilanjutkan dengan `apt-get install isc-dhcp-server -y` untuk menginstall DHCP Server. 
+
+![image](https://user-images.githubusercontent.com/73152464/141611667-ad21ccc7-8530-402e-a696-cae9e6ccd3f7.png)
+
+Selanjutnya adalah edit file konfigurasi isc-dhcp-server pada /etc/default/isc-dhcp-server, dengan memilih interface eth0 untuk diberikan layanan DHCP.
+`INTERFACES="eth0"`
+
+![image](https://user-images.githubusercontent.com/73152464/141611821-dacb7d8e-b7f5-4d0e-b4c5-f5d623d4cc38.png)
+
+
+b. EnniesLobby sebagai DNS Server
+Untuk menjadikan EnniesLobby sebagai DNS Server, maka dijalankan command `apt-get update` dilanjutkan dengan `apt-get install bind9 -y` untuk menginstall bind9 sebagai DNS Server.
+
+c. Water7 sebagai Proxy Server
+Untuk menjadikan Water7 sebagai Proxy Server, maka dijalankan command `apt-get update` dilanjutkan dengan `apt-get install squid -y` untuk menginstall squid sebagai Proxy Server.
 
 ### 2. Dan Foosha sebagai DHCP Relay. 
 
+**Jawab:**
+Untuk menjadikan Foosha sebagai DHCP Relay, maka dijalankan command `apt-get update` dilanjutkan dengan `apt-get install isc-dhcp-relay` untuk menginstall DHCP Relay.
+
+Saat penginstallan akan muncul pertanyaan seperti screenshot di bawah ini:
+
+![image](https://user-images.githubusercontent.com/73152464/141611744-79fe783f-1fe1-4a8a-a6a2-f7484805cde1.png)
+
+Kami mengisi Server yang digunakan DHCP Relay untuk melakukan request dengan IP adress Jipangu yaitu `10.43.2.4` dan mengeset interface dengan `eth1 eth3 eth2`. Setelah itu dijalankan command `service isc-dhcp-relay restart`.
 
 ### 3. Luffy dan Zoro menyusun peta tersebut dengan hati-hati dan teliti. Ada beberapa kriteria yang ingin dibuat oleh Luffy dan Zoro, yaitu: Semua client yang ada HARUS menggunakan konfigurasi IP dari DHCP Server. Client yang melalui Switch1 mendapatkan range IP dari [prefix IP].1.20 - [prefix IP].1.99 dan [prefix IP].1.150 - [prefix IP].1.169.
 
+**Jawab:**
+
+Mengedit file /etc/dhcp/dhcpd.conf pada Jipangu dan menambahkan konfigurasi berikut 
+
+```
+subnet 10.43.1.0 netmask 255.255.255.0 {
+    range  10.43.1.20 10.43.1.99;
+    range  10.43.1.150 10.43.1.169;
+    option routers 10.43.1.1;
+    option broadcast-address 10.43.1.255;
+    option domain-name-servers 10.43.2.2;
+    default-lease-time 360;
+    max-lease-time 7200;
+}
+```
+
+![image](https://user-images.githubusercontent.com/73152464/141613512-d209198e-36a7-421d-b7ae-62bbcf1c73e8.png)
+
 
 ### 4. Client yang melalui Switch3 mendapatkan range IP dari [prefix IP].3.30 - [prefix IP].3.50.
+**Jawab:**
+
+Mengedit file /etc/dhcp/dhcpd.conf pada Jipangu dan menambahkan konfigurasi berikut
+
+```
+subnet 10.43.3.0 netmask 255.255.255.0 {
+    range  10.43.3.30 10.43.3.50;
+    option routers 10.43.3.1;
+    option broadcast-address 10.43.3.255;
+    option domain-name-servers 10.43.2.2;
+    default-lease-time 720;
+    max-lease-time 7200;
+}
+```
+
+![image](https://user-images.githubusercontent.com/73152464/141613577-104b6389-5061-4bed-b0e4-38e4478c80bc.png)
 
 
 ### 5. Client mendapatkan DNS dari EniesLobby dan client dapat terhubung dengan internet melalui DNS tersebut.
+**Jawab:**
+
+- Pada Jipangu, ditambahkan konfigurasi `option domain-name-servers 10.43.2.2;` untuk `subnet 10.43.1.0` dan `subnet 10.43.3.0` pada file `/etc/dhcp/dhcpd.conf`
+
+- Mengedit file `/etc/bind/named.conf.options` pada EnniesLobby menambahkan forwarders agar client dapat terhubung ke internet.
+
+```
+options {
+        directory "/var/cache/bind";
+
+        forwarders {
+                8.8.8.8;
+                8.8.4.4;
+        };
+
+        //dnssec-validation auto;
+        allow-query { any; };
+
+        auth-nxdomain no;    # conform to RFC1035
+        listen-on-v6 { any; };
+};
+```
+
+- Lalu menambahkan konfigurasi berikut pada client Loguetown, Alabasta, dan TottoLand pada file `/etc/network/interfaces`
+`
+auto eth0
+iface eth0 inet dhcp
+`
+
+![image](https://user-images.githubusercontent.com/73152464/141614316-bd4a6694-9106-4b26-bead-fb685a669034.png)
+
+![image](https://user-images.githubusercontent.com/73152464/141614330-b94307b5-5b62-4bfa-8cda-5780abe1f861.png)
+
+![image](https://user-images.githubusercontent.com/73152464/141614336-cee2636e-1a65-4167-8936-8c7aea4b4255.png)
 
 
 ### 6. Lama waktu DHCP server meminjamkan alamat IP kepada Client yang melalui Switch1 selama 6 menit sedangkan pada client yang melalui Switch3 selama 12 menit. Dengan waktu maksimal yang dialokasikan untuk peminjaman alamat IP selama 120 menit. 
+**Jawab:**
 
-    
+- Menambahkan konfigurasi berikut untuk Switch1 pada file `/etc/dhcp/dhcpd.conf` di Jipangu
+```
+    default-lease-time 360;
+    max-lease-time 7200;
+```
+- Menambahkan konfigurasi berikut untuk Switch3 pada file `/etc/dhcp/dhcpd.conf` di Jipangu
+```
+    default-lease-time 720;
+    max-lease-time 7200;
+```
+
 ### 7. Luffy dan Zoro berencana menjadikan Skypie sebagai server untuk jual beli kapal yang dimilikinya dengan alamat IP yang tetap dengan IP [prefix IP].3.69. 
 
 **Jawab:**
