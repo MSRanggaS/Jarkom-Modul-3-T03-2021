@@ -35,6 +35,8 @@ host Skypie {
 }
 ```
 
+![image](https://media.discordapp.net/attachments/858956223604850688/908924169511649380/Screenshot_2021-11-13_103621.png)
+
 
 ### 8. Loguetown digunakan sebagai client Proxy agar transaksi jual beli dapat terjamin keamanannya, juga untuk mencegah kebocoran data transaksi. Pada Loguetown, proxy harus bisa diakses dengan nama jualbelikapal.yyy.com dengan port yang digunakan adalah 5000. 
 
@@ -76,6 +78,8 @@ export http_proxy="http://jualbelikapal.T03.com:5000"
 ```
 dan untuk mengecek apa proxy sudah berjalan gunakan perintah `env | grep -i proxy`
 
+![image](https://media.discordapp.net/attachments/858956223604850688/908924186741846016/unknown.png)
+
 
 ### 9. Agar transaksi jual beli lebih aman dan pengguna website ada dua orang, proxy dipasang autentikasi user proxy dengan enkripsi MD5 dengan dua username, yaitu luffybelikapalyyy dengan password luffy_yyy dan zorobelikapalyyy dengan password zoro_yyy. 
 
@@ -98,6 +102,9 @@ acl USERS proxy_auth REQUIRED
 http_access allow USERS AVAILABLE_WORKING
 http_access deny all
 ```
+![image](https://user-images.githubusercontent.com/61416036/141604613-47d30692-23f7-4245-8167-a99b13faeaab.png)
+![image](https://user-images.githubusercontent.com/61416036/141604629-c4d6b0b2-baf1-4e64-aa43-801e5871942d.png)
+Terjadi error karena waktu belum di set
 
 
 ### 10. Transaksi jual beli tidak dilakukan setiap hari, oleh karena itu akses internet dibatasi hanya dapat diakses setiap hari Senin-Kamis pukul 07.00-11.00 dan setiap hari Selasa-Jum’at pukul 17.00-03.00 keesokan harinya (sampai Sabtu pukul 03.00).
@@ -113,6 +120,9 @@ Dan juga tambahkan konfigurasi berikut pada file `/etc/squid/squid.conf`
 ```
 include /etc/squid/acl.conf
 ```
+![image](https://user-images.githubusercontent.com/61416036/141604638-cbc4ef99-07b0-4e06-a2c7-f4603d3bc159.png)
+![image](https://user-images.githubusercontent.com/61416036/141604642-c14d6821-8e46-4ee3-b8bf-a6bf04a6350d.png)
+Dapat mengakses dengan syarat syarat yang ada
 
 
 ### 11. Agar transaksi bisa lebih fokus berjalan, maka dilakukan redirect website agar mudah mengingat website transaksi jual beli kapal. Setiap mengakses google.com, akan diredirect menuju super.franky.yyy.com dengan website yang sama pada soal shift modul 2. Web server super.franky.yyy.com berada pada node Skypie.
