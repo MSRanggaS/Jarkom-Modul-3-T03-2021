@@ -22,15 +22,97 @@
     
 ### 7. Luffy dan Zoro berencana menjadikan Skypie sebagai server untuk jual beli kapal yang dimilikinya dengan alamat IP yang tetap dengan IP [prefix IP].3.69. 
 
+**Jawab:**
+Kita tinggal melihat hwaddress dari skypie. Kemudian tinggal memasukkan command berikut ke `/etc/network/interfaces` pada node skypie tergantung nilai hwaddress masing masing
+```
+hwaddress ether 46:9b:96:38:f1:bc
+```
+Kemudian memasukkan konfigurasi ini ke file `/etc/dhcp/dhcpd.conf` pada node Jipangu
+```
+host Skypie {
+    hardware ethernet 46:9b:96:38:f1:bc;
+    fixed-address 10.43.3.69;
+}
+```
 
-### 8. Loguetown digunakan sebagai client Proxy agar transaksi jual beli dapat terjamin keamanannya, juga untuk mencegah kebocoran data transaksi.
-Pada Loguetown, proxy harus bisa diakses dengan nama jualbelikapal.yyy.com dengan port yang digunakan adalah 5000. 
+
+### 8. Loguetown digunakan sebagai client Proxy agar transaksi jual beli dapat terjamin keamanannya, juga untuk mencegah kebocoran data transaksi. Pada Loguetown, proxy harus bisa diakses dengan nama jualbelikapal.yyy.com dengan port yang digunakan adalah 5000. 
+
+**Jawab:**
+Kita menginstal DNS di EniesLobby kemudian kita masukkan konfigurasi untuk proxy Water7.
+Masukkan konfigurasi berikut pada file `/etc/bind/named.conf.local` pada node EniesLobby
+```
+zone "jualbelikapal.T03.com" {
+        type master;
+        file "/etc/bind/kaizoku/jualbelikapal.T03.com";
+};
+```
+
+Kemudian konfigurasi berikut pada file `/etc/bind/kaizoku/jualbelikapal.T03.com`
+```
+$TTL    604800
+@       IN      SOA     jualbelikapal.T03.com. root.jualbelikapal.T03.com. (
+                              2         ; Serial
+                         604800         ; Refresh
+                          86400         ; Retry
+                        2419200         ; Expire
+                         604800 )       ; Negative Cache TTL
+;
+@       IN      NS      jualbelikapal.T03.com.
+@       IN      A       10.43.2.3; 
+```
+Setelah itu restart bind9
+
+Kemudian install squid di Water7 dan masukkan konfigurasi berikut pada file `/etc/squid/squid.conf`
+```
+http_port 8080
+visible_hostname Water7
+```
+Kemudian restart squid, apabila belum bisa mengakses karena masih ada konfigurasi yang akan ditambahkan di soal berikutnya.
+
+Untuk menjalankan proxy di client gunakan perintah
+```
+export http_proxy="http://jualbelikapal.T03.com:5000"
+```
+dan untuk mengecek apa proxy sudah berjalan gunakan perintah `env | grep -i proxy`
 
 
 ### 9. Agar transaksi jual beli lebih aman dan pengguna website ada dua orang, proxy dipasang autentikasi user proxy dengan enkripsi MD5 dengan dua username, yaitu luffybelikapalyyy dengan password luffy_yyy dan zorobelikapalyyy dengan password zoro_yyy. 
 
+**Jawab:**
+Tinggal jalankan saja perintah berikut, parameter `c` adalah untuk membuat username password baru sehingga yang kedua tidak perlu parameter `c`, `b` untuk memasukkan parameter password bersamaan dengan username, dan `m` adalah untuk enkripsi MD5
+```
+htpasswd -cbm /etc/squid/passwd luffybelikapalt03 luffy_t03
+```
+```
+htpasswd -bm /etc/squid/passwd zorobelikapalt03 zoro_t03
+```
+Kemudian tambahkan konfigurasi pada file `/etc/squid/squid.conf`
+```
+auth_param basic program /usr/lib/squid/basic_ncsa_auth /etc/squid/passwd
+auth_param basic children 5
+auth_param basic realm Proxy
+auth_param basic credentialsttl 2 hours
+auth_param basic casesensitive on
+acl USERS proxy_auth REQUIRED
+http_access allow USERS AVAILABLE_WORKING
+http_access deny all
+```
+
 
 ### 10. Transaksi jual beli tidak dilakukan setiap hari, oleh karena itu akses internet dibatasi hanya dapat diakses setiap hari Senin-Kamis pukul 07.00-11.00 dan setiap hari Selasa-Jum’at pukul 17.00-03.00 keesokan harinya (sampai Sabtu pukul 03.00).
+
+**Jawab:**
+Tambahkan konfigurasi berikut pada file `/etc/squid/acl.conf` 
+```
+acl AVAILABLE_WORKING time MTWH 07:00-11:00
+acl AVAILABLE_WORKING time TWHF 17:00-23:59
+acl AVAILABLE_WORKING time WHFA 00:00-03:00
+```
+Dan juga tambahkan konfigurasi berikut pada file `/etc/squid/squid.conf`
+```
+include /etc/squid/acl.conf
+```
 
 
 ### 11. Agar transaksi bisa lebih fokus berjalan, maka dilakukan redirect website agar mudah mengingat website transaksi jual beli kapal. Setiap mengakses google.com, akan diredirect menuju super.franky.yyy.com dengan website yang sama pada soal shift modul 2. Web server super.franky.yyy.com berada pada node Skypie.
