@@ -125,14 +125,82 @@ include /etc/squid/acl.conf
 Dapat mengakses dengan syarat syarat yang ada
 
 
-### 11. Agar transaksi bisa lebih fokus berjalan, maka dilakukan redirect website agar mudah mengingat website transaksi jual beli kapal. Setiap mengakses google.com, akan diredirect menuju super.franky.yyy.com dengan website yang sama pada soal shift modul 2. Web server super.franky.yyy.com berada pada node Skypie.
+### 11. Setiap mengakses `google.com`, akan diredirect menuju `super.franky.yyy.com`
+
+1. Menambahkan peraturan proxy di `/etc/squid/squid.conf` pada Water7
+
+```
+acl myNetwork src 10.43.3.0/24 10.43.1.0/24
+acl blksites dstdomain .google.com
+deny_info http://super.franky.T03.com all
+
+http_reply_access deny blksites all
+
+http_access allow myNetwork AVAILABLE_WORKING
+```
+
+2. Restart squid `service squid restart`
 
 
-### 12. Saatnya berlayar! Luffy dan Zoro akhirnya memutuskan untuk berlayar untuk mencari harta karun di super.franky.yyy.com. Tugas pencarian dibagi menjadi dua misi, Luffy bertugas untuk mendapatkan gambar (.png, .jpg), sedangkan Zoro mendapatkan sisanya. Karena Luffy orangnya sangat teliti untuk mencari harta karun, ketika ia berhasil mendapatkan gambar, ia mendapatkan gambar dan melihatnya dengan kecepatan 10 kbps. 
+3. `Lynx google.com` pada proxy client yaitu Loguetown
 
+saat `lynx google.com` akan langsung ter-redirect ke `super.franky.T03.com`
 
-### 13. Sedangkan, Zoro yang sangat bersemangat untuk mencari harta karun, sehingga kecepatan kapal Zoro tidak dibatasi ketika sudah mendapatkan harta yang diinginkannya.
+![11-1](https://user-images.githubusercontent.com/73921231/141609505-87b38a4e-695b-4f49-be1a-e70d1e66ec46.jpg)
 
+isi dari `super.franky.T03.com` sama dengan yang ada pada modul 2
+
+![11-2](https://user-images.githubusercontent.com/73921231/141609519-a592a50b-2fbf-4000-bb2c-f3212c2f3044.jpg)
+
+### 12. Luffy bertugas untuk mendapatkan gambar (.png, .jpg), sedangkan Zoro mendapatkan sisanya. Bandwidth luffy dibatasi menjadi kecepatan 10 kbps.
+
+1. Menambahkan peraturan proxy di `/etc/squid/squid.conf` pada Water7
+
+```
+acl user1 proxy_auth luffybelikapalT03
+acl user2 proxy_auth zorobelikapalT03
+
+acl download url_regex -i \.jpg234$ !\.jpg$ !\.png$
+acl downloadd url_regex -i \.jpg$ \.png$
+
+delay_pools 1
+delay_class 1 1
+delay_parameters 1 10000/50000
+delay_access 1 allow user1
+
+http_reply_access deny download user1
+http_reply_access deny downloadd user2
+```
+
+2. Restart squid `service squid restart`
+
+3. Test akses file dan download speed
+
+**Luffy**
+
+Jika mencoba mengakses file selain `.png` dan `.jpg`, file tersebut menjadi forbidden/access denied
+
+![12-1](https://user-images.githubusercontent.com/73921231/141609671-e32f2d2c-429f-4b0f-98f3-d21145cdb78c.jpg)
+
+Download speed luffy menjadi 10kbps saat mendownload file `.png` atau `.jpg`
+
+![12-2](https://user-images.githubusercontent.com/73921231/141609789-80565006-9157-4470-a9c8-81e07dcf9c53.jpg)
+
+**Zoro**
+
+Jika mencoba mengakses file `.png` dan `.jpg`, file tersebut menjadi forbidden/access denied
+
+![12-3](https://user-images.githubusercontent.com/73921231/141609850-cd5b0fe6-6a0e-41e8-b65d-64ce6c5f5c62.jpg)
+
+### 13. Kecepatan Zoro tidak dibatasi
+
+Mengakses file selain `.png` dan `.jpg`
+
+![13](https://user-images.githubusercontent.com/73921231/141609975-1dcc076c-d4b1-4060-9f4a-749480cc1f52.jpg)
+
+file tersebut akan terload secara instant.
+
+hal itu membuktikan kecepatan zoro tidak dibatasi, tidak seperti luffy.
 
 
 ## Kendala
